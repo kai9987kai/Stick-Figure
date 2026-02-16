@@ -1,0 +1,238 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Stick Figure Alive - Advanced Rig Lab</title>
+<style>
+:root{--bg:#0b0f14;--txt:#d7e3f0;--muted:#8fa3b8;--accent:#6bdcff;--warn:#ffce6b;--good:#6bff9a;--bad:#ff6b7a;--grid:rgba(255,255,255,.05);--mono:ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;--sans:ui-sans-serif,system-ui,-apple-system,Segoe UI,Roboto,Arial,sans-serif}
+html,body{height:100%;margin:0;background:radial-gradient(1200px 800px at 30% 10%,#0f1b2b,var(--bg));color:var(--txt);font-family:var(--sans)}
+.wrap{display:grid;grid-template-columns:400px 1fr;gap:14px;padding:14px;height:100%;box-sizing:border-box}
+.panel{background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,.02));border:1px solid rgba(255,255,255,.1);border-radius:14px;box-shadow:0 14px 40px rgba(0,0,0,.45);overflow:hidden;min-height:0}
+.hdr{padding:12px 14px;background:linear-gradient(180deg,rgba(255,255,255,.06),rgba(255,255,255,0));border-bottom:1px solid rgba(255,255,255,.1);display:flex;align-items:center;justify-content:space-between}
+.hdr h1{font-size:14px;margin:0;letter-spacing:.06em;text-transform:uppercase;color:var(--muted)}
+.badge{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.75);background:rgba(107,220,255,.1);border:1px solid rgba(107,220,255,.25);padding:4px 8px;border-radius:999px}
+.content{padding:12px 14px 14px;overflow:auto;max-height:calc(100% - 52px)}
+.row{display:grid;grid-template-columns:1fr;gap:10px;margin-bottom:12px}.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}.grid3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+.card{background:rgba(18,26,36,.72);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px}.card h2{font-size:12px;margin:0 0 8px;color:rgba(255,255,255,.82);letter-spacing:.03em}
+.hint{font-size:12px;color:var(--muted);line-height:1.35}label{display:flex;justify-content:space-between;gap:10px;font-size:12px;color:rgba(255,255,255,.85);margin-bottom:6px}
+input[type=range]{width:100%}
+input[type=number],select,textarea{width:100%;box-sizing:border-box;background:rgba(10,14,20,.9);color:var(--txt);border:1px solid rgba(255,255,255,.14);border-radius:10px;padding:9px 10px;font-family:var(--mono);outline:none}
+textarea{min-height:130px;resize:vertical}.btns{display:flex;flex-wrap:wrap;gap:8px}
+button{border:1px solid rgba(255,255,255,.14);background:rgba(10,14,20,.65);color:var(--txt);border-radius:12px;padding:9px 10px;font-size:12px;cursor:pointer;transition:transform .05s,border-color .15s,background .15s}
+button:hover{border-color:rgba(107,220,255,.35);background:rgba(107,220,255,.08)}button:active{transform:translateY(1px)}
+.btn-good{border-color:rgba(107,255,154,.35);background:rgba(107,255,154,.08)}.btn-warn{border-color:rgba(255,206,107,.35);background:rgba(255,206,107,.08)}.btn-bad{border-color:rgba(255,107,122,.35);background:rgba(255,107,122,.08)}
+.status{font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.78);background:rgba(0,0,0,.25);border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:10px;white-space:pre-wrap;line-height:1.35}
+.viewport{position:relative}
+canvas{width:100%;height:100%;display:block;background:linear-gradient(transparent 23px,var(--grid) 24px),linear-gradient(90deg,transparent 23px,var(--grid) 24px),radial-gradient(1200px 800px at 70% 30%,rgba(107,220,255,.08),transparent 55%);background-size:24px 24px,24px 24px,auto;border-radius:14px;border:1px solid rgba(255,255,255,.1);box-shadow:0 14px 40px rgba(0,0,0,.45)}
+.overlay{position:absolute;left:12px;top:12px;font-family:var(--mono);font-size:12px;color:rgba(255,255,255,.78);background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.1);padding:10px;border-radius:12px;max-width:640px;pointer-events:none;line-height:1.35}
+.kbd{display:inline-block;padding:1px 6px;border-radius:6px;border:1px solid rgba(255,255,255,.18);background:rgba(255,255,255,.08)}
+@media (max-width:980px){.wrap{grid-template-columns:1fr}.panel{height:50vh}.viewport{height:calc(50vh - 28px)}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="panel">
+    <div class="hdr"><h1>Stick Figure Alive</h1><div class="badge">Rig + IK + Keyframes + Systems</div></div>
+    <div class="content"><div class="row">
+      <div class="card">
+        <h2>Playback</h2>
+        <div class="btns"><button id="btnPlay" class="btn-good">Play</button><button id="btnPause">Pause</button><button id="btnReset">Reset</button><button id="btnStep">Step +1/60s</button></div>
+        <div style="height:10px"></div>
+        <label><span>Clip</span><span id="clipName" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label>
+        <select id="clipSelect"><option value="idle">idle</option><option value="walk">walk</option><option value="custom">custom (JSON timeline)</option></select>
+        <div style="height:10px"></div>
+        <label><span>Time</span><span id="timeLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label>
+        <input id="timeScrub" type="range" min="0" max="1" step="0.0001" value="0">
+        <div style="height:10px"></div>
+        <div class="grid2">
+          <div><label><span>Speed</span><span id="speedLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="speed" type="range" min="0" max="2.5" step="0.01" value="1"></div>
+          <div><label><span>FPS cap</span><span id="fpsLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="fps" type="range" min="15" max="144" step="1" value="60"></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Alive Controls</h2>
+        <div class="grid2">
+          <div><label><span>IK strength</span><span id="ikLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="ik" type="range" min="0" max="1" step="0.01" value="0.85"></div>
+          <div><label><span>Foot plant</span><span id="plantLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="plant" type="range" min="0" max="1" step="0.01" value="0.80"></div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="grid2">
+          <div><label><span>Bob</span><span id="bobLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="bob" type="range" min="0" max="40" step="0.1" value="14"></div>
+          <div><label><span>Lean</span><span id="leanLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="lean" type="range" min="-25" max="25" step="0.1" value="5"></div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="btns"><button id="btnPossess" class="btn-warn">Possess: OFF</button><button id="btnMirror">Mirror pose</button><button id="btnRandom">Random micro-pose</button></div>
+        <div style="height:10px"></div>
+        <div class="hint">Possess mode lets you drag hands/feet/head targets with the mouse. Hold <span class="kbd">Shift</span> while dragging feet to snap to terrain.</div>
+      </div>
+
+      <div class="card">
+        <h2>Advanced Systems</h2>
+        <div class="grid2">
+          <div>
+            <label><span>Terrain mode</span><span id="terrainModeLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label>
+            <select id="terrainMode"><option value="flat">flat</option><option value="wave">wave</option><option value="steps">steps</option><option value="noise">noise</option></select>
+          </div>
+          <div>
+            <label><span>Auto balance</span><span id="balanceLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label>
+            <input id="balance" type="range" min="0" max="1" step="0.01" value="0.75">
+          </div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="grid3">
+          <div><label><span>Amp</span><span id="terrainAmpLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="terrainAmp" type="range" min="0" max="90" step="0.5" value="28"></div>
+          <div><label><span>Freq</span><span id="terrainFreqLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="terrainFreq" type="range" min="0.2" max="4.0" step="0.01" value="1.20"></div>
+          <div><label><span>Flow</span><span id="terrainFlowLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="terrainFlow" type="range" min="0" max="2.5" step="0.01" value="0.35"></div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="grid2">
+          <div><label><span>Trail len</span><span id="trailLenLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="trailLen" type="range" min="0" max="60" step="1" value="20"></div>
+          <div><label><span>Trail alpha</span><span id="trailAlphaLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="trailAlpha" type="range" min="0" max="0.9" step="0.01" value="0.22"></div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="grid2">
+          <div><label><span>Beat BPM</span><span id="beatBpmLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="beatBpm" type="range" min="60" max="180" step="1" value="112"></div>
+          <div><label><span>Beat intensity</span><span id="beatIntensityLabel" style="font-family:var(--mono);color:rgba(255,255,255,.75)"></span></label><input id="beatIntensity" type="range" min="0" max="1" step="0.01" value="0.42"></div>
+        </div>
+        <div style="height:10px"></div>
+        <div class="btns"><button id="btnBeat" class="btn-warn">Beat Reactor: OFF</button><button id="btnCom">COM Overlay: ON</button><button id="btnGenerateClip" class="btn-good">Generate style clip</button></div>
+      </div>
+
+      <div class="card">
+        <h2>Record / Export</h2>
+        <div class="btns"><button id="btnRec" class="btn-warn">Record: OFF</button><button id="btnAddKey">Add Keyframe</button><button id="btnClearKeys" class="btn-bad">Clear Keys</button><button id="btnToCustom" class="btn-good">Use as Custom Clip</button></div>
+        <div style="height:10px"></div>
+        <label><span>Timeline JSON</span><span style="font-family:var(--mono);color:rgba(255,255,255,.75)">export / import</span></label>
+        <textarea id="jsonBox" spellcheck="false"></textarea>
+        <div style="height:10px"></div>
+        <div class="btns"><button id="btnExport">Export</button><button id="btnImport">Import</button><button id="btnCopy">Copy</button><button id="btnPaste">Paste</button></div>
+      </div>
+
+      <div class="card"><h2>Status</h2><div id="status" class="status"></div></div>
+    </div></div>
+  </div>
+
+  <div class="viewport">
+    <canvas id="c"></canvas>
+    <div class="overlay">Drag targets in Possess mode. Keys: <span class="kbd">Space</span> play/pause <span class="kbd">R</span> reset <span class="kbd">K</span> keyframe <span class="kbd">P</span> possess <span class="kbd">M</span> mirror <span class="kbd">B</span> beat <span class="kbd">C</span> COM <span class="kbd">G</span> style clip</div>
+  </div>
+</div>
+
+<script>
+(()=>{
+const $=id=>document.getElementById(id);
+const TAU=Math.PI*2,clamp=(x,a,b)=>Math.max(a,Math.min(b,x)),lerp=(a,b,t)=>a+(b-a)*t,smooth=t=>t*t*(3-2*t),damp=(c,t,l,dt)=>{const k=Math.exp(-l*dt);return c*k+t*(1-k)},fract=x=>x-Math.floor(x);
+class V{constructor(x=0,y=0){this.x=x;this.y=y}clone(){return new V(this.x,this.y)}set(x,y){this.x=x;this.y=y;return this}add(v){this.x+=v.x;this.y+=v.y;return this}sub(v){this.x-=v.x;this.y-=v.y;return this}mul(s){this.x*=s;this.y*=s;return this}len(){return Math.hypot(this.x,this.y)}norm(){const l=this.len()||1;this.x/=l;this.y/=l;return this}static add(a,b){return new V(a.x+b.x,a.y+b.y)}static sub(a,b){return new V(a.x-b.x,a.y-b.y)}static mul(a,s){return new V(a.x*s,a.y*s)}static dist(a,b){return Math.hypot(a.x-b.x,a.y-b.y)}static ang(a){return new V(Math.cos(a),Math.sin(a))}}
+const cv=$("c"),ctx=cv.getContext("2d");
+const timeline={playing:true,t:0,tNorm:0,dt:1/60,fps:60,speed:1};
+function resize(){const r=cv.getBoundingClientRect(),dpr=Math.max(1,Math.min(2.5,window.devicePixelRatio||1));cv.width=Math.floor(r.width*dpr);cv.height=Math.floor(r.height*dpr);ctx.setTransform(dpr,0,0,dpr,0,0)}
+addEventListener("resize",resize);resize();
+
+const terrain={mode:"flat",amp:28,freq:1.2,flow:.35,base:.78};
+const baseGY=()=>cv.getBoundingClientRect().height*terrain.base;
+const hash=n=>fract(Math.sin(n*127.1+311.7)*43758.5453123);
+const noise=x=>{const i=Math.floor(x),f=fract(x),u=f*f*(3-2*f);return lerp(hash(i),hash(i+1),u)*2-1};
+function groundAt(x){const W=Math.max(1,cv.getBoundingClientRect().width),flow=timeline.t*terrain.flow*1.9,base=baseGY(),xn=(x/W)*TAU*terrain.freq+flow;if(terrain.mode==="wave")return base+Math.sin(xn)*terrain.amp;if(terrain.mode==="steps"){const sw=Math.max(32,W/11),id=Math.floor(x/sw+flow*.9);return base+((id%2===0)?-terrain.amp*.42:terrain.amp*.42)}if(terrain.mode==="noise")return base+noise((x/74)*terrain.freq+flow)*terrain.amp;return base}
+
+const rig={dims:{hipW:28,shoW:46,spine:38,neck:14,headR:16,uArm:28,lArm:26,thigh:34,shin:34},s:{hips:new V(),spine:new V(),neck:new V(),head:new V(),lShoulder:new V(),rShoulder:new V(),lElbow:new V(),rElbow:new V(),lHand:new V(),rHand:new V(),lHip:new V(),rHip:new V(),lKnee:new V(),rKnee:new V(),lFoot:new V(),rFoot:new V(),tHead:new V(),tLHand:new V(),tRHand:new V(),tLFoot:new V(),tRFoot:new V()}};
+
+function twoBone(root,l1,l2,target,bend=1){const to=V.sub(target,root),raw=to.len(),dir=(raw>1e-6?to.clone().mul(1/raw):new V(1,0)),c=clamp(raw,1e-6,l1+l2-1e-6),cosA=clamp((l1*l1+c*c-l2*l2)/(2*l1*c),-1,1),angA=Math.acos(cosA),base=Math.atan2(dir.y,dir.x),joint=V.add(root,V.ang(base+bend*angA).mul(l1)),end=V.add(root,V.mul(dir,c));return{joint,end}}
+
+function initRig(){const s=rig.s,W=cv.getBoundingClientRect().width,cx=W*.5,gy=groundAt(cx);s.hips.set(cx,gy-72);s.spine.set(s.hips.x,s.hips.y-rig.dims.spine);s.neck.set(s.spine.x,s.spine.y-rig.dims.neck);s.head.set(s.neck.x,s.neck.y-rig.dims.headR);s.lShoulder.set(s.spine.x-rig.dims.shoW*.5,s.spine.y);s.rShoulder.set(s.spine.x+rig.dims.shoW*.5,s.spine.y);s.lHip.set(s.hips.x-rig.dims.hipW*.5,s.hips.y);s.rHip.set(s.hips.x+rig.dims.hipW*.5,s.hips.y);s.tHead=s.head.clone();s.tLHand=V.add(s.lShoulder,new V(-18,30));s.tRHand=V.add(s.rShoulder,new V(18,30));const lfx=s.lHip.x-12,rfx=s.rHip.x+12;s.tLFoot=new V(lfx,groundAt(lfx));s.tRFoot=new V(rfx,groundAt(rfx));solveAll(1)}
+
+const makeKey=(t,s)=>({t,head:[s.tHead.x-s.hips.x,s.tHead.y-s.hips.y],lhand:[s.tLHand.x-s.hips.x,s.tLHand.y-s.hips.y],rhand:[s.tRHand.x-s.hips.x,s.tRHand.y-s.hips.y],lfoot:[s.tLFoot.x-s.hips.x,s.tLFoot.y-s.hips.y],rfoot:[s.tRFoot.x-s.hips.x,s.tRFoot.y-s.hips.y]});
+function applyKey(k,s){const h=s.hips;s.tHead.set(h.x+k.head[0],h.y+k.head[1]);s.tLHand.set(h.x+k.lhand[0],h.y+k.lhand[1]);s.tRHand.set(h.x+k.rhand[0],h.y+k.rhand[1]);s.tLFoot.set(h.x+k.lfoot[0],h.y+k.lfoot[1]);s.tRFoot.set(h.x+k.rfoot[0],h.y+k.rfoot[1])}
+function sample(keys,t){if(!keys?.length)return null;if(keys.length===1)return keys[0];t=(t%1+1)%1;let i1=0;while(i1<keys.length&&keys[i1].t<=t)i1++;const i0=(i1-1+keys.length)%keys.length,i2=i1%keys.length,k0=keys[i0],k1=keys[i2];let t0=k0.t,t1=k1.t;if(t1<=t0)t1+=1;let tt=t;if(tt<t0)tt+=1;const u=smooth(clamp((tt-t0)/(t1-t0),0,1)),L=(a,b)=>[lerp(a[0],b[0],u),lerp(a[1],b[1],u)];return{t,head:L(k0.head,k1.head),lhand:L(k0.lhand,k1.lhand),rhand:L(k0.rhand,k1.rhand),lfoot:L(k0.lfoot,k1.lfoot),rfoot:L(k0.rfoot,k1.rfoot)}}
+
+const buildIdle=()=>[{t:0,head:[0,-68],lhand:[-38,-18],rhand:[38,-18],lfoot:[-12,74],rfoot:[12,74]},{t:.25,head:[2,-70],lhand:[-40,-16],rhand:[40,-16],lfoot:[-12,74],rfoot:[12,74]},{t:.5,head:[0,-68],lhand:[-38,-18],rhand:[38,-18],lfoot:[-12,74],rfoot:[12,74]},{t:.75,head:[-2,-66],lhand:[-36,-20],rhand:[36,-20],lfoot:[-12,74],rfoot:[12,74]}];
+const buildWalk=()=>[{t:0,head:[0,-70],lhand:[-52,-24],rhand:[30,-10],lfoot:[-22,78],rfoot:[22,64]},{t:.25,head:[1,-68],lhand:[-30,-10],rhand:[52,-24],lfoot:[-22,64],rfoot:[22,78]},{t:.5,head:[0,-70],lhand:[-52,-24],rhand:[30,-10],lfoot:[-22,78],rfoot:[22,64]},{t:.75,head:[-1,-68],lhand:[-30,-10],rhand:[52,-24],lfoot:[-22,64],rfoot:[22,78]}];
+const clips={idle:{keys:buildIdle(),loop:true},walk:{keys:buildWalk(),loop:true},custom:{keys:[],loop:true}};
+const proc={bob:14,lean:5,ik:.85,plant:.8,balance:.75},beat={on:false,bpm:112,intensity:.42,phase:0,pulse:0},fx={trailLen:20,trailAlpha:.22,onionStep:2,showCOM:true,shake:0},footPlant={lLock:null,rLock:null},com={p:new V(),min:0,max:0,stable:true},trail=[];
+let autoLean=0,recording=false,customKeys=[];
+
+const stance=t=>{const wrap=x=>(x%1+1)%1,inR=(x,a,b)=>(a<=b?x>=a&&x<=b:x>=a||x<=b),lt=wrap(t);return{lDown:inR(lt,.93,.12)||inR(lt,.43,.62),rDown:inR(lt,.18,.37)||inR(lt,.68,.87)}};
+function updateBeat(dt){if(!beat.on){beat.pulse=damp(beat.pulse,0,16,dt);return}const hz=beat.bpm/60;beat.phase=(beat.phase+dt*hz)%1;const raw=Math.max(0,Math.sin(beat.phase*TAU)),sh=raw*raw*raw,prev=beat.pulse;beat.pulse=damp(beat.pulse,sh,16,dt);if(beat.pulse>.82&&prev<=.82)fx.shake=Math.min(12,fx.shake+2+beat.intensity*6)}
+function solveAll(str=1){const s=rig.s,d=rig.dims,lean=(proc.lean+autoLean)*Math.PI/180,sd=V.ang(-Math.PI/2+lean),pp=new V(-sd.y,sd.x);s.spine=V.add(s.hips,V.mul(sd,d.spine));s.neck=V.add(s.spine,V.mul(sd,d.neck));s.head.x=lerp(s.head.x,s.tHead.x,str*proc.ik);s.head.y=lerp(s.head.y,s.tHead.y,str*proc.ik);s.lShoulder=V.add(s.spine,V.mul(pp,-d.shoW*.5));s.rShoulder=V.add(s.spine,V.mul(pp,d.shoW*.5));s.lHip=V.add(s.hips,V.mul(pp,-d.hipW*.5));s.rHip=V.add(s.hips,V.mul(pp,d.hipW*.5));if(footPlant.lLock)s.tLFoot=footPlant.lLock.clone();if(footPlant.rLock)s.tRFoot=footPlant.rLock.clone();const snap=v=>{v.y=Math.min(v.y,groundAt(v.x))},lf=s.tLFoot.clone(),rf=s.tRFoot.clone();snap(lf);snap(rf);s.tLFoot.x=lerp(s.tLFoot.x,lf.x,proc.plant*.4);s.tLFoot.y=lerp(s.tLFoot.y,lf.y,proc.plant*.9);s.tRFoot.x=lerp(s.tRFoot.x,rf.x,proc.plant*.4);s.tRFoot.y=lerp(s.tRFoot.y,rf.y,proc.plant*.9);const ll=twoBone(s.lHip,d.thigh,d.shin,s.tLFoot,1),rr=twoBone(s.rHip,d.thigh,d.shin,s.tRFoot,-1);s.lKnee=ll.joint;s.lFoot=ll.end;s.rKnee=rr.joint;s.rFoot=rr.end;const la=twoBone(s.lShoulder,d.uArm,d.lArm,s.tLHand,-1),ra=twoBone(s.rShoulder,d.uArm,d.lArm,s.tRHand,1);s.lElbow=la.joint;s.lHand=la.end;s.rElbow=ra.joint;s.rHand=ra.end}
+function updCOM(){const s=rig.s,a={x:0,y:0,w:0},ad=(p,w)=>{a.x+=p.x*w;a.y+=p.y*w;a.w+=w};ad(s.hips,2.6);ad(s.spine,1.8);ad(s.neck,1);ad(s.head,1.2);ad(s.lHip,1.1);ad(s.rHip,1.1);ad(s.lKnee,.9);ad(s.rKnee,.9);ad(s.lFoot,.8);ad(s.rFoot,.8);ad(s.lShoulder,.8);ad(s.rShoulder,.8);ad(s.lElbow,.6);ad(s.rElbow,.6);ad(s.lHand,.45);ad(s.rHand,.45);com.p.set(a.x/a.w,a.y/a.w);com.min=Math.min(s.lFoot.x,s.rFoot.x)-6;com.max=Math.max(s.lFoot.x,s.rFoot.x)+6;com.stable=com.p.x>=com.min&&com.p.x<=com.max}
+function snapPose(){const s=rig.s;return{hips:s.hips.clone(),spine:s.spine.clone(),neck:s.neck.clone(),head:s.head.clone(),lShoulder:s.lShoulder.clone(),rShoulder:s.rShoulder.clone(),lElbow:s.lElbow.clone(),rElbow:s.rElbow.clone(),lHand:s.lHand.clone(),rHand:s.rHand.clone(),lHip:s.lHip.clone(),rHip:s.rHip.clone(),lKnee:s.lKnee.clone(),rKnee:s.rKnee.clone(),lFoot:s.lFoot.clone(),rFoot:s.rFoot.clone()}}
+function pushTrail(){trail.push(snapPose());const m=Math.max(0,Math.floor(fx.trailLen));if(!m){trail.length=0;return}if(trail.length>m)trail.splice(0,trail.length-m)}
+
+function drawPose(p,a=1,ghost=false){const lc=ghost?`rgba(107,220,255,${.14*a})`:`rgba(215,227,240,${.95*a})`,bc=ghost?`rgba(107,220,255,${.12*a})`:`rgba(215,227,240,${.85*a})`,L=(x,y,w=4,c=lc)=>{ctx.beginPath();ctx.moveTo(x.x,x.y);ctx.lineTo(y.x,y.y);ctx.lineWidth=w;ctx.lineCap="round";ctx.strokeStyle=c;ctx.stroke()};L(p.hips,p.spine,5);L(p.spine,p.neck,4);L(p.lShoulder,p.rShoulder,5,bc);L(p.lHip,p.rHip,5,bc);L(p.lShoulder,p.lElbow,4);L(p.lElbow,p.lHand,4);L(p.rShoulder,p.rElbow,4);L(p.rElbow,p.rHand,4);L(p.lHip,p.lKnee,5);L(p.lKnee,p.lFoot,5);L(p.rHip,p.rKnee,5);L(p.rKnee,p.rFoot,5);ctx.beginPath();ctx.arc(p.head.x,p.head.y,rig.dims.headR,0,TAU);ctx.fillStyle=ghost?`rgba(107,220,255,${.04*a})`:`rgba(215,227,240,.12)`;ctx.fill();ctx.lineWidth=4;ctx.strokeStyle=lc;ctx.stroke()}
+function drawTarget(p,label,col){ctx.save();ctx.strokeStyle=col;ctx.fillStyle=col;ctx.globalAlpha=.95;ctx.lineWidth=2;ctx.beginPath();ctx.arc(p.x,p.y,7,0,TAU);ctx.stroke();ctx.beginPath();ctx.moveTo(p.x-11,p.y);ctx.lineTo(p.x+11,p.y);ctx.moveTo(p.x,p.y-11);ctx.lineTo(p.x,p.y+11);ctx.stroke();ctx.font="11px "+getComputedStyle(document.documentElement).getPropertyValue("--mono");ctx.fillText(label,p.x+10,p.y-10);ctx.restore()}
+function draw(){const W=cv.getBoundingClientRect().width,H=cv.getBoundingClientRect().height;ctx.clearRect(0,0,W,H);const bg=ctx.createLinearGradient(0,0,0,H);bg.addColorStop(0,"#0b1523");bg.addColorStop(1,"#081018");ctx.fillStyle=bg;ctx.fillRect(0,0,W,H);ctx.fillStyle="rgba(107,220,255,.08)";ctx.beginPath();ctx.arc(W*.72,H*.26,Math.max(W,H)*.32,0,TAU);ctx.fill();ctx.strokeStyle="rgba(255,255,255,.06)";ctx.lineWidth=1;for(let gx=0;gx<=W;gx+=24){ctx.beginPath();ctx.moveTo(gx,0);ctx.lineTo(gx,H);ctx.stroke()}for(let gy=0;gy<=H;gy+=24){ctx.beginPath();ctx.moveTo(0,gy);ctx.lineTo(W,gy);ctx.stroke()}ctx.save();if(fx.shake>.01){const s=fx.shake;ctx.translate((Math.random()*2-1)*s,(Math.random()*2-1)*s*.55);fx.shake=Math.max(0,fx.shake*.86-.05)}else fx.shake=0;ctx.beginPath();for(let x=0;x<=W;x+=6){const y=groundAt(x);if(!x)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.lineTo(W,H+40);ctx.lineTo(0,H+40);ctx.closePath();ctx.fillStyle="rgba(30,82,108,.72)";ctx.fill();ctx.beginPath();for(let x=0;x<=W;x+=6){const y=groundAt(x);if(!x)ctx.moveTo(x,y);else ctx.lineTo(x,y)}ctx.lineWidth=2;ctx.strokeStyle="rgba(255,255,255,.16)";ctx.stroke();const step=Math.max(1,fx.onionStep|0);if(trail.length>1&&fx.trailLen>0){for(let i=0;i<trail.length;i+=step){const t=i/Math.max(1,trail.length-1),a=(1-t)*fx.trailAlpha;drawPose(trail[i],a,true)}}const s=rig.s;drawPose(s,1,false);const fd=V.sub(s.tRHand,s.tLHand).norm();ctx.beginPath();ctx.arc(s.head.x+fd.x*6,s.head.y+fd.y*2,2.6,0,TAU);ctx.fillStyle="rgba(107,220,255,.95)";ctx.fill();if(fx.showCOM){const sy=(groundAt(s.lFoot.x)+groundAt(s.rFoot.x))*.5+4;ctx.beginPath();ctx.moveTo(com.min,sy);ctx.lineTo(com.max,sy);ctx.lineWidth=6;ctx.lineCap="round";ctx.strokeStyle=com.stable?"rgba(107,255,154,.35)":"rgba(255,107,122,.45)";ctx.stroke();ctx.beginPath();ctx.moveTo(com.p.x,com.p.y);ctx.lineTo(com.p.x,groundAt(com.p.x));ctx.lineWidth=1.5;ctx.strokeStyle="rgba(255,255,255,.28)";ctx.stroke();ctx.beginPath();ctx.arc(com.p.x,com.p.y,6,0,TAU);ctx.fillStyle=com.stable?"rgba(107,255,154,.92)":"rgba(255,107,122,.92)";ctx.fill();ctx.lineWidth=2;ctx.strokeStyle="rgba(0,0,0,.35)";ctx.stroke()}const st=stance(timeline.tNorm);if(el.clipSel.value==="walk"){ctx.save();ctx.globalAlpha=.55;ctx.fillStyle=st.lDown?"rgba(107,255,154,.22)":"rgba(255,255,255,.06)";ctx.beginPath();ctx.arc(s.lFoot.x,groundAt(s.lFoot.x),17,0,TAU);ctx.fill();ctx.fillStyle=st.rDown?"rgba(107,255,154,.22)":"rgba(255,255,255,.06)";ctx.beginPath();ctx.arc(s.rFoot.x,groundAt(s.rFoot.x),17,0,TAU);ctx.fill();ctx.restore()}if(poss.on){drawTarget(s.tHead,"HEAD","rgba(107,220,255,.95)");drawTarget(s.tLHand,"L_HAND","rgba(107,255,154,.95)");drawTarget(s.tRHand,"R_HAND","rgba(107,255,154,.95)");drawTarget(s.tLFoot,"L_FOOT","rgba(255,206,107,.95)");drawTarget(s.tRFoot,"R_FOOT","rgba(255,206,107,.95)")}ctx.restore()}
+
+const poss={on:false,active:null,off:new V()},pick=(mx,my)=>{const s=rig.s,arr=[["tHead",s.tHead],["tLHand",s.tLHand],["tRHand",s.tRHand],["tLFoot",s.tLFoot],["tRFoot",s.tRFoot]];let b=null,bd=1e9;for(const[k,p]of arr){const d=V.dist(p,new V(mx,my));if(d<bd&&d<14){bd=d;b=k}}return b},toCanvas=e=>{const r=cv.getBoundingClientRect();return new V(e.clientX-r.left,e.clientY-r.top)};
+let shift=false;
+addEventListener("keydown",e=>{if(e.key==="Shift")shift=true;const k=e.key.toLowerCase();if(e.key===" "){e.preventDefault();togglePlay()}if(k==="r")reset();if(k==="k")addKeyframe();if(k==="p")togglePossess();if(k==="m")mirrorPose();if(k==="b")toggleBeat();if(k==="c")toggleCOM();if(k==="g")generateStyleClip()});
+addEventListener("keyup",e=>{if(e.key==="Shift")shift=false});
+cv.addEventListener("pointerdown",e=>{if(!poss.on)return;const p=toCanvas(e),k=pick(p.x,p.y);if(!k)return;poss.active=k;const t=rig.s[k];poss.off.set(t.x-p.x,t.y-p.y);cv.setPointerCapture(e.pointerId)});
+cv.addEventListener("pointermove",e=>{if(!poss.on||!poss.active)return;const p=toCanvas(e),t=rig.s[poss.active];t.x=p.x+poss.off.x;t.y=p.y+poss.off.y;if(shift&&(poss.active==="tLFoot"||poss.active==="tRFoot"))t.y=groundAt(t.x)});
+cv.addEventListener("pointerup",e=>{if(!poss.on)return;poss.active=null;try{cv.releasePointerCapture(e.pointerId)}catch{}});
+
+const normalize=keys=>{const ks=keys.map(k=>({...k,t:clamp(+k.t||0,0,1)})).sort((a,b)=>a.t-b.t),out=[];for(const k of ks){const last=out[out.length-1];if(last&&Math.abs(last.t-k.t)<1e-4)out[out.length-1]=k;else out.push(k)}return out};
+const exportTL=()=>{const p={version:2,loop:true,keys:normalize(customKeys)};el.jsonBox.value=JSON.stringify(p,null,2);statusLine(`Exported ${p.keys.length} keyframes.`)};
+function importTL(){let o;try{o=JSON.parse(el.jsonBox.value)}catch{statusLine("Import failed: invalid JSON.");return}if(!o||!Array.isArray(o.keys)){statusLine("Import failed: missing keys[].");return}const ks=normalize(o.keys);for(const k of ks){for(const f of ["head","lhand","rhand","lfoot","rfoot"])if(!Array.isArray(k[f])||k[f].length!==2){statusLine(`Import failed: key.${f} must be [x,y].`);return}}customKeys=ks;clips.custom.keys=customKeys;el.clipSel.value="custom";statusLine(`Imported ${customKeys.length} keyframes.`);refresh()}
+function mirrorPose(){const s=rig.s,cx=s.hips.x,mir=p=>p.x=cx-(p.x-cx),h=s.tLHand.clone(),f=s.tLFoot.clone();s.tLHand=s.tRHand.clone();mir(s.tLHand);s.tRHand=h;mir(s.tRHand);s.tLFoot=s.tRFoot.clone();mir(s.tLFoot);s.tRFoot=f;mir(s.tRFoot);mir(s.tHead);statusLine("Mirrored pose.")}
+function randomPose(){const s=rig.s,j=a=>(Math.random()*2-1)*a;s.tHead.add(new V(j(4),j(2)));s.tLHand.add(new V(j(8),j(6)));s.tRHand.add(new V(j(8),j(6)));s.tLFoot.add(new V(j(6),j(3)));s.tRFoot.add(new V(j(6),j(3)));s.tLFoot.y=Math.min(s.tLFoot.y,groundAt(s.tLFoot.x));s.tRFoot.y=Math.min(s.tRFoot.y,groundAt(s.tRFoot.x));statusLine("Random micro-pose applied.")}
+function generateStyleClip(){const seed=Math.random()*1000,c=10,out=[],h1=Math.sin(seed*.73)*.5+.5,h2=Math.sin(seed*1.37)*.5+.5,stride=lerp(14,34,h1),lift=lerp(8,28,h2),arm=lerp(10,34,1-h1);for(let i=0;i<c;i++){const t=i/c,ph=t*TAU,alt=Math.sin(ph),lLift=Math.max(0,Math.sin(ph+Math.PI*.1)),rLift=Math.max(0,Math.sin(ph+Math.PI*1.1));out.push({t,head:[Math.sin(ph*2+seed)*4,-66-Math.sin(ph+seed*.5)*6],lhand:[-36-alt*arm,-19-Math.sin(ph+1.8)*11],rhand:[36+alt*arm,-19+Math.sin(ph+1.8)*11],lfoot:[-12-alt*stride,74-lLift*lift],rfoot:[12+alt*stride,74-rLift*lift]})}customKeys=normalize(out);clips.custom.keys=customKeys;el.clipSel.value="custom";statusLine(`Generated style clip (${customKeys.length} keys).`);refresh()}
+const addKeyframe=()=>{const t=timeline.tNorm;customKeys.push(makeKey(t,rig.s));customKeys=normalize(customKeys);clips.custom.keys=customKeys;statusLine(`Keyframe added at t=${t.toFixed(3)} (custom has ${customKeys.length}).`);refresh()};
+const el={btnPlay:$("btnPlay"),btnPause:$("btnPause"),btnReset:$("btnReset"),btnStep:$("btnStep"),btnPossess:$("btnPossess"),btnMirror:$("btnMirror"),btnRandom:$("btnRandom"),btnRec:$("btnRec"),btnAddKey:$("btnAddKey"),btnClearKeys:$("btnClearKeys"),btnToCustom:$("btnToCustom"),btnBeat:$("btnBeat"),btnCom:$("btnCom"),btnGenerateClip:$("btnGenerateClip"),clipSel:$("clipSelect"),timeScrub:$("timeScrub"),speed:$("speed"),fps:$("fps"),ik:$("ik"),plant:$("plant"),bob:$("bob"),lean:$("lean"),balance:$("balance"),terrainMode:$("terrainMode"),terrainAmp:$("terrainAmp"),terrainFreq:$("terrainFreq"),terrainFlow:$("terrainFlow"),trailLen:$("trailLen"),trailAlpha:$("trailAlpha"),beatBpm:$("beatBpm"),beatIntensity:$("beatIntensity"),jsonBox:$("jsonBox"),btnExport:$("btnExport"),btnImport:$("btnImport"),btnCopy:$("btnCopy"),btnPaste:$("btnPaste"),clipName:$("clipName"),timeLabel:$("timeLabel"),speedLabel:$("speedLabel"),fpsLabel:$("fpsLabel"),ikLabel:$("ikLabel"),plantLabel:$("plantLabel"),bobLabel:$("bobLabel"),leanLabel:$("leanLabel"),balanceLabel:$("balanceLabel"),terrainModeLabel:$("terrainModeLabel"),terrainAmpLabel:$("terrainAmpLabel"),terrainFreqLabel:$("terrainFreqLabel"),terrainFlowLabel:$("terrainFlowLabel"),trailLenLabel:$("trailLenLabel"),trailAlphaLabel:$("trailAlphaLabel"),beatBpmLabel:$("beatBpmLabel"),beatIntensityLabel:$("beatIntensityLabel"),status:$("status")};
+
+function statusLine(msg){const n=new Date(),hh=String(n.getHours()).padStart(2,"0"),mm=String(n.getMinutes()).padStart(2,"0"),ss=String(n.getSeconds()).padStart(2,"0");el.status.textContent=`[${hh}:${mm}:${ss}] ${msg}\n`+el.status.textContent}
+function refresh(){el.clipName.textContent=el.clipSel.value;el.timeLabel.textContent=`${timeline.tNorm.toFixed(3)} / 1.000`;el.speedLabel.textContent=`${timeline.speed.toFixed(2)}x`;el.fpsLabel.textContent=`${timeline.fps} fps`;el.ikLabel.textContent=proc.ik.toFixed(2);el.plantLabel.textContent=proc.plant.toFixed(2);el.bobLabel.textContent=`${proc.bob.toFixed(1)}px`;el.leanLabel.textContent=`${proc.lean.toFixed(1)}deg`;el.balanceLabel.textContent=proc.balance.toFixed(2);el.terrainModeLabel.textContent=terrain.mode;el.terrainAmpLabel.textContent=`${terrain.amp.toFixed(1)}px`;el.terrainFreqLabel.textContent=`${terrain.freq.toFixed(2)}x`;el.terrainFlowLabel.textContent=`${terrain.flow.toFixed(2)}x`;el.trailLenLabel.textContent=fx.trailLen.toFixed(0);el.trailAlphaLabel.textContent=fx.trailAlpha.toFixed(2);el.beatBpmLabel.textContent=beat.bpm.toFixed(0);el.beatIntensityLabel.textContent=beat.intensity.toFixed(2);el.timeScrub.value=timeline.tNorm;el.btnPossess.textContent=`Possess: ${poss.on?"ON":"OFF"}`;el.btnRec.textContent=`Record: ${recording?"ON":"OFF"}`;el.btnBeat.textContent=`Beat Reactor: ${beat.on?"ON":"OFF"}`;el.btnCom.textContent=`COM Overlay: ${fx.showCOM?"ON":"OFF"}`}
+const togglePlay=()=>{timeline.playing=!timeline.playing;refresh()},togglePossess=()=>{poss.on=!poss.on;if(!poss.on)poss.active=null;statusLine(`Possess ${poss.on?"enabled":"disabled"}.`);refresh()},toggleBeat=()=>{beat.on=!beat.on;statusLine(`Beat reactor ${beat.on?"enabled":"disabled"}.`);refresh()},toggleCOM=()=>{fx.showCOM=!fx.showCOM;statusLine(`COM overlay ${fx.showCOM?"enabled":"disabled"}.`);refresh()};
+function reset(){timeline.t=0;timeline.tNorm=0;beat.phase=0;beat.pulse=0;trail.length=0;initRig();footPlant.lLock=null;footPlant.rLock=null;statusLine("Reset.");refresh()}
+
+el.btnPlay.onclick=()=>{timeline.playing=true;statusLine("Play.");refresh()};
+el.btnPause.onclick=()=>{timeline.playing=false;statusLine("Pause.");refresh()};
+el.btnReset.onclick=()=>reset();
+el.btnStep.onclick=()=>{timeline.playing=false;step(1/60);refresh()};
+el.btnPossess.onclick=()=>togglePossess();
+el.btnMirror.onclick=()=>mirrorPose();
+el.btnRandom.onclick=()=>randomPose();
+el.btnBeat.onclick=()=>toggleBeat();
+el.btnCom.onclick=()=>toggleCOM();
+el.btnGenerateClip.onclick=()=>generateStyleClip();
+el.btnRec.onclick=()=>{recording=!recording;statusLine(`Recording ${recording?"ON":"OFF"}.`);refresh()};
+el.btnAddKey.onclick=()=>addKeyframe();
+el.btnClearKeys.onclick=()=>{customKeys=[];clips.custom.keys=customKeys;statusLine("Cleared custom keyframes.");refresh()};
+el.btnToCustom.onclick=()=>{clips.custom.keys=normalize(customKeys);el.clipSel.value="custom";statusLine("Switched to custom clip.");refresh()};
+el.clipSel.onchange=()=>{statusLine(`Clip set to ${el.clipSel.value}.`);footPlant.lLock=null;footPlant.rLock=null;refresh()};
+el.timeScrub.oninput=()=>{timeline.tNorm=parseFloat(el.timeScrub.value);timeline.t=timeline.tNorm;timeline.playing=false;applyAt(timeline.tNorm);refresh()};
+el.speed.oninput=()=>{timeline.speed=parseFloat(el.speed.value);refresh()};
+el.fps.oninput=()=>{timeline.fps=parseInt(el.fps.value,10);refresh()};
+el.ik.oninput=()=>{proc.ik=parseFloat(el.ik.value);refresh()};
+el.plant.oninput=()=>{proc.plant=parseFloat(el.plant.value);refresh()};
+el.bob.oninput=()=>{proc.bob=parseFloat(el.bob.value);refresh()};
+el.lean.oninput=()=>{proc.lean=parseFloat(el.lean.value);refresh()};
+el.balance.oninput=()=>{proc.balance=parseFloat(el.balance.value);refresh()};
+el.terrainMode.onchange=()=>{terrain.mode=el.terrainMode.value;statusLine(`Terrain mode set to ${terrain.mode}.`);footPlant.lLock=null;footPlant.rLock=null;refresh()};
+el.terrainAmp.oninput=()=>{terrain.amp=parseFloat(el.terrainAmp.value);refresh()};
+el.terrainFreq.oninput=()=>{terrain.freq=parseFloat(el.terrainFreq.value);refresh()};
+el.terrainFlow.oninput=()=>{terrain.flow=parseFloat(el.terrainFlow.value);refresh()};
+el.trailLen.oninput=()=>{fx.trailLen=parseFloat(el.trailLen.value);refresh()};
+el.trailAlpha.oninput=()=>{fx.trailAlpha=parseFloat(el.trailAlpha.value);refresh()};
+el.beatBpm.oninput=()=>{beat.bpm=parseFloat(el.beatBpm.value);refresh()};
+el.beatIntensity.oninput=()=>{beat.intensity=parseFloat(el.beatIntensity.value);refresh()};
+el.btnExport.onclick=()=>exportTL();
+el.btnImport.onclick=()=>importTL();
+el.btnCopy.onclick=async()=>{try{await navigator.clipboard.writeText(el.jsonBox.value);statusLine("Copied JSON to clipboard.")}catch{statusLine("Copy failed (clipboard permissions).")}};
+el.btnPaste.onclick=async()=>{try{el.jsonBox.value=await navigator.clipboard.readText();statusLine("Pasted JSON from clipboard.")}catch{statusLine("Paste failed (clipboard permissions).")}};
+
+function applyAt(t){const s=rig.s,clip=clips[el.clipSel.value];if(!clip)return;if(!poss.on||el.clipSel.value!=="custom"){const k=sample(clip.keys,t);if(k)applyKey(k,s)}const bp=beat.on?beat.pulse*beat.intensity:0,ph=t*TAU+beat.phase*TAU*.22,bv=Math.sin(ph)*proc.bob*(1+bp*.85),sw=Math.sin(ph*.5+bp)*(6+bp*6),W=cv.getBoundingClientRect().width,pref=W*.5+sw,support=(s.tLFoot.x+s.tRFoot.x)*.5,blend=lerp(pref,support,proc.balance*.75);s.hips.x=damp(s.hips.x,blend,6+proc.balance*6,timeline.dt);const gy=groundAt(s.hips.x);s.hips.y=damp(s.hips.y,gy-72-bv*.35,8.2,timeline.dt);autoLean=clamp((support-s.hips.x)*.24,-16,16)*proc.balance+bp*5.2;s.tHead.y-=bp*4.5;s.tLHand.y-=bp*8.5;s.tRHand.y-=bp*8.5;if(el.clipSel.value==="walk"){const st=stance(t);if(st.lDown&&!footPlant.lLock)footPlant.lLock=s.tLFoot.clone();if(!st.lDown&&footPlant.lLock)footPlant.lLock=null;if(st.rDown&&!footPlant.rLock)footPlant.rLock=s.tRFoot.clone();if(!st.rDown&&footPlant.rLock)footPlant.rLock=null;if(footPlant.lLock)footPlant.lLock.y=groundAt(footPlant.lLock.x);if(footPlant.rLock)footPlant.rLock.y=groundAt(footPlant.rLock.x)}else{footPlant.lLock=null;footPlant.rLock=null}if(recording){applyAt._acc=(applyAt._acc||0)+timeline.dt*timeline.speed;if(applyAt._acc>1/12){applyAt._acc=0;customKeys.push(makeKey(t,s));customKeys=normalize(customKeys);clips.custom.keys=customKeys}}solveAll(proc.ik);updCOM();pushTrail()}
+
+let last=performance.now(),acc=0;
+function step(dt){updateBeat(dt);if(timeline.playing){timeline.t+=dt*timeline.speed;timeline.tNorm=(timeline.t%1+1)%1}applyAt(timeline.tNorm);draw()}
+function tick(now){const dt=Math.min(.05,(now-last)/1000);last=now;const frame=1/Math.max(15,timeline.fps);acc+=dt;while(acc>=frame){acc-=frame;timeline.dt=frame;step(frame)}refresh();requestAnimationFrame(tick)}
+
+window.advanceTime=ms=>{const f=1000/60,steps=Math.max(1,Math.round(ms/f));for(let i=0;i<steps;i++)step(1/60);refresh()};
+window.render_game_to_text=()=>{const s=rig.s;return JSON.stringify({coordinate_system:"origin=(0,0) top-left; +x right; +y down; pixels",clip:el.clipSel.value,playing:timeline.playing,t_norm:+timeline.tNorm.toFixed(3),speed:+timeline.speed.toFixed(2),terrain:{mode:terrain.mode,amp:+terrain.amp.toFixed(1),freq:+terrain.freq.toFixed(2),flow:+terrain.flow.toFixed(2)},beat:{on:beat.on,bpm:beat.bpm,pulse:+beat.pulse.toFixed(2),intensity:+beat.intensity.toFixed(2)},body:{hips:{x:+s.hips.x.toFixed(1),y:+s.hips.y.toFixed(1)},head:{x:+s.head.x.toFixed(1),y:+s.head.y.toFixed(1)},l_foot:{x:+s.lFoot.x.toFixed(1),y:+s.lFoot.y.toFixed(1),lock:!!footPlant.lLock},r_foot:{x:+s.rFoot.x.toFixed(1),y:+s.rFoot.y.toFixed(1),lock:!!footPlant.rLock},l_hand:{x:+s.lHand.x.toFixed(1),y:+s.lHand.y.toFixed(1)},r_hand:{x:+s.rHand.x.toFixed(1),y:+s.rHand.y.toFixed(1)}},balance:{enabled:proc.balance>0,stable:com.stable,com_x:+com.p.x.toFixed(1),support_min:+com.min.toFixed(1),support_max:+com.max.toFixed(1)},systems:{possess:poss.on,recording,custom_keyframes:customKeys.length,trail_len:fx.trailLen}})};
+
+initRig();updCOM();pushTrail();timeline.playing=true;statusLine("Initialized. Clip=idle. Advanced systems online.");refresh();requestAnimationFrame(tick);
+})();
+</script>
+</body>
+</html>
+
